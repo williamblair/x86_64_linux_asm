@@ -43,7 +43,7 @@ _start:
 	;	if - interrupt enabled
 
 	; pointer registers:
-	;	rip - 64 bit index pointer - next address to be executed
+	;	rip - 64 bit instruction pointer - next address to be executed
 	;	rsp - 64 bit stack pointer - top of stack
 	;	rbp - 64 bit stack base pointer - bottom of stack
 	;
