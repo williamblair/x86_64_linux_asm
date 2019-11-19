@@ -41,6 +41,16 @@ _start:
 	;div rbx
 	;call _print_rax_digit
 
+    ; push a value to the stack (rsp is stack pointer)
+    ; can also push a value from a register
+    ;   push the_register
+    push 7
+    ; pop the value from the stack, store in register rax
+    ; can also pop into a location in memory:
+    ;   pop [memory_addr]
+    pop rax
+    call _print_rax_digit
+
 	
 	; 60 - sys_exit
 	; 0  - error code
