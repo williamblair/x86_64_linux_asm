@@ -3,6 +3,9 @@
 ;	nasm -f elf64 -o nasm_macros.o nasm_macros.asm
 ;	ld -o nasm_macros nasm_macros.o
 
+; you can include files with
+; %include "myfile"
+
 ; some helpful constants
 STDIN  equ 0
 STDOUT equ 1
