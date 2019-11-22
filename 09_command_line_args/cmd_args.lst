@@ -1,0 +1,107 @@
+     1                                  ; this program follows original tutorial episode 9
+     2                                  ; Calling 
+     3                                  ; compile with
+     4                                  ;	nasm -f elf64 -o cmd_args.o cmd_args.asm
+     5                                  ;	gcc cmd_args.o -o cmd_args
+     6                                  
+     7                                  ; you can include files with
+     8                                  ; %include "myfile"
+     9                                  
+    10                                  ; some helpful constants
+    11                                  STDIN  equ 0
+    12                                  STDOUT equ 1
+    13                                  STDERR equ 2
+    14                                  
+    15                                  SYS_READ  equ 0
+    16                                  SYS_WRITE equ 1
+    17                                  SYS_EXIT equ 60
+    18                                  
+    19                                  section .data
+    20                                  
+    21 00000000 4E6F20617267756D65-         no_arg_msg db "No arguments",0
+    22 00000009 6E747300           
+    23                                      
+    24                                      ; we'll use this string to hold the number of args
+    25 0000000D 20206E756D20617267-         arg_str db "  num arg",0
+    26 00000016 00                 
+    27                                      
+    28                                  ; This section is used to reserve space (variables)
+    29                                  section .bss
+    30                                  
+    31                                      ; 100 bytes to store an integer as text
+    32 00000000 <res 00000064>              digit_buf   resb 100
+    33                                      ; store the current index of the integer
+    34 00000064 <res 00000008>              digit_index resb 8
+    35                                  
+    36                                  section .text
+    37                                  
+    38                                  ; instead of _start for ld, gcc uses 'main'
+    39                                  ;   ; section start required for the linker (ld)
+    40                                  ;    global _start
+    41                                  
+    42                                      global main
+    43                                  
+    44                                  ; exit macro
+    45                                  ; syntax:
+    46                                  ; %macro <name> <num args>
+    47                                  ; arguments are referenced with %1, %2, %3, etc...
+    48                                  %macro exit 0
+    49                                      mov rax, SYS_EXIT
+    50                                      mov rdi, 0
+    51                                      syscall
+    52                                  %endmacro
+    53                                  
+    54                                  ; like header include for puts
+    55                                  extern puts
+    56                                  
+    57                                  ; %include "../07_print_integers/_print_int.asm"
+    58                                  
+    59                                  ;_start:
+    60                                  main:
+    61                                  
+    62                                      ; upon start, when compiled with gcc,
+    63                                      ; rdi contains argc and rsi contains argv
+    64 00000000 4889F8                      mov rax, rdi
+    65                                      ;mov rdx, rdi    ; rdx will be our 'counter' register to loop over all args
+    66 00000003 57                          push rdi ; save rdi val
+    67                                  
+    68 00000004 4883C030                    add rax, 48       ; convert to ascii
+    69 00000008 880425[0D000000]            mov [arg_str], al ; only get the lowest 8 bits
+    70                                  
+    71 0000000F 48BF-                       mov rdi, arg_str ; argument to puts
+    72 00000011 [0D00000000000000] 
+    73 00000019 E8(00000000)                call puts
+    74                                  
+    75 0000001E 5A                          pop rdx ; restore rdi initial val (argc) in rdi
+    76 0000001F 4883FA01                    cmp rdx, 1
+    77 00000023 7F1B                        jg  _print_loop ; if argc > 1, print out rest of args
+    78                                  
+    79 00000025 48BF-                       mov rdi, no_arg_msg
+    80 00000027 [0000000000000000] 
+    81 0000002F E8(00000000)                call puts
+    82                                      exit            ; else exit
+    83 00000034 B83C000000          <1>  mov rax, SYS_EXIT
+    84 00000039 BF00000000          <1>  mov rdi, 0
+    85 0000003E 0F05                <1>  syscall
+    86                                     
+    87                                  _print_loop:
+    88                                  
+    89 00000040 488B3E                      mov rdi, [rsi] ; move the current string pointer as arg to puts
+    90 00000043 E8(00000000)                call puts
+    91                                  
+    92                                  ;    dec rdx ; minus 1 on the loop counter
+    93                                  
+    94                                  ;    add rsi, 8 ; move to the next string
+    95                                  
+    96                                      ; if rdx > 1, loop again
+    97                                  ;    cmp rdx, 1
+    98                                  ;    jg _print_loop
+    99                                  
+   100                                      ; apparently 'ret' is wrong and you should make the exit
+   101                                      ; system call instead:
+   102                                      ;   https://stackoverflow.com/questions/19760002/nasm-segmentation-fault-on-ret-in-start#19760081
+   103                                      exit
+   104 00000048 B83C000000          <1>  mov rax, SYS_EXIT
+   105 0000004D BF00000000          <1>  mov rdi, 0
+   106 00000052 0F05                <1>  syscall
+   107                                  
