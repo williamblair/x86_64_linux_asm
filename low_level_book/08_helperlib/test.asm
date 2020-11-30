@@ -192,6 +192,50 @@ printInt:
     call printNewline
     ret
 
+; readChar - reads 1 character from stdin and returns it in al
+;            if end of input occurs, return 0
+; inputs: none
+; outputs: al (low 8 bits of rax)
+; overwrites:
+;   rax, rdi, rdx, rsi
+readChar:
+    sub rsp, 1      ; reserve a byte to store the read
+    mov rax, 0      ; system call (0 = sys_read)
+    mov rdi, 0      ; file descriptor (0 = stdin)
+    mov rsi, rsp    ; address
+    mov rdx, 1      ; number of characters to read
+    syscall         ; read call
+    mov al, [rsp]   ; copy from reserved memory into al
+    add rsp, 1      ; "free" reserved memory
+    ret
+
+; readWord - reads a word from stdin into the address given in rax
+;            if word too long, rax is set to 0
+; inputs:
+;   rax - buffer address
+;   rdi - buffer size
+; outputs:
+;   rax - buffer address
+; overwrites:
+;   
+readWord:
+    mov rsi, rax            ; copy the buffer address into rsi
+    mov rdx, 0              ; rdx = 0 (index counter)
+.readWord_loop:
+    call readChar           ; store the next character in al
+    cmp rax, 0              ; check the return value of readChar
+    jle .readWord_endLoop   ;   if returned <= 0, goto end
+    mov [rsi+rdx], al       ; copy the character into the buffer
+    inc rdx                 ; rdx += 1
+    cmp rdx, rdi            ; if rdx >= rdi
+    jge .readWord_tooBig    ;   goto readWord_tooBig
+    jmp .readWord_loop      ; else goto readWord_loop
+.readWord_tooBig:
+    mov rsi, 0
+.readWord_endLoop:
+    mov rax, rsi
+    ret
+
 global _start
 
 section .data
@@ -212,6 +256,20 @@ _start:
 
     mov rax, -1234567
     call printInt
+
+    call readChar
+    mov dil, al     ; al contains the read character
+    call printChar
+    call printNewline
+
+    sub rsp, 8      ; reserve 8 bytes for string
+    mov rax, rsp    ; buffer to read into
+    mov rdi, 8      ; buffer size
+    add rsp, 8      ; restore 8 string bytes
+    call readWord
+    ; mov rax, rax  ; rax already contains the number to print
+    call printInt   ; check the return value from readWord
+    call printNewline
 
     call exit
 
