@@ -217,14 +217,28 @@ readChar:
 ; outputs:
 ;   rax - buffer address
 ; overwrites:
-;   
+;   rdx, rsi
 readWord:
+    mov byte[rax], 0        ; fill with zeros (TODO - add to end instead)
+    sub rdi, 1              ; make buffer size 0 indexed
     mov rsi, rax            ; copy the buffer address into rsi
     mov rdx, 0              ; rdx = 0 (index counter)
 .readWord_loop:
+    push rdi
+    push rsi
+    push rdx
     call readChar           ; store the next character in al
+    pop rdx
+    pop rsi
+    pop rdi
     cmp rax, 0              ; check the return value of readChar
     jle .readWord_endLoop   ;   if returned <= 0, goto end
+    cmp al, 0x20            ; check if the letter is a space
+    je .readWord_endLoop    ;   if so, finish
+    cmp al, 0x09            ; check if the letter is a tab char
+    je .readWord_endLoop    ;   if so, finish
+    cmp al, 0x0A            ; check if letter is a line break
+    je .readWord_endLoop    ;   if so, finish
     mov [rsi+rdx], al       ; copy the character into the buffer
     inc rdx                 ; rdx += 1
     cmp rdx, rdi            ; if rdx >= rdi
@@ -240,6 +254,7 @@ global _start
 
 section .data
     testString: db "hello, world!",0
+    wordBuf:    db 0,0,0,0,0,0,0,0
 section .text
 _start:
 
@@ -257,19 +272,20 @@ _start:
     mov rax, -1234567
     call printInt
 
-    call readChar
-    mov dil, al     ; al contains the read character
-    call printChar
-    call printNewline
+    ;call readChar
+    ;mov dil, al     ; al contains the read character
+    ;call printChar
+    ;call printNewline
 
-    sub rsp, 8      ; reserve 8 bytes for string
-    mov rax, rsp    ; buffer to read into
-    mov rdi, 8      ; buffer size
-    add rsp, 8      ; restore 8 string bytes
+    mov rax, wordBuf    ; buffer to read into
+    mov rdi, 8          ; buffer size
     call readWord
-    ; mov rax, rax  ; rax already contains the number to print
-    call printInt   ; check the return value from readWord
-    call printNewline
+    mov rdi, rax        ; rax contains the returned buffer
+    cmp rdi, 0          ;   or 0 on failure
+    je doExit           ; if returned NULL, exit
+    call printString    ; otherwise, print the string
 
+doExit:
+    call printNewline
     call exit
 
